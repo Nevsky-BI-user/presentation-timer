@@ -1,5 +1,5 @@
 // Змінюй версію при кожному оновленні — це тригер для оновлення кешу
-const CACHE_NAME = 'ptimer-v4';
+const CACHE_NAME = 'ptimer-v5';
 const ASSETS = [
   './',
   './index.html',
