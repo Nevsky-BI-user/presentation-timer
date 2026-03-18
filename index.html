@@ -714,7 +714,33 @@ document.getElementById('btnInstall').addEventListener('click', function() {
 });
 document.getElementById('btnDismiss').addEventListener('click', function() { document.getElementById('installBanner').classList.remove('show'); });
 window.addEventListener('appinstalled', function() { document.getElementById('installBanner').classList.remove('show'); });
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function() {});
+// ─── Service Worker з автооновленням ───
+// При кожному відкритті додатку перевіряє чи є нова версія sw.js.
+// Якщо є — автоматично перезавантажує сторінку з новими файлами.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(function(reg) {
+    // Перевіряти оновлення кожні 60 секунд
+    setInterval(function() { reg.update(); }, 60000);
+    // Коли знайдено новий service worker
+    reg.addEventListener('updatefound', function() {
+      var newWorker = reg.installing;
+      newWorker.addEventListener('statechange', function() {
+        // Коли новий SW активувався — перезавантажити сторінку
+        if (newWorker.state === 'activated') {
+          window.location.reload();
+        }
+      });
+    });
+  }).catch(function() {});
+  // Якщо SW взяв контроль (clients.claim) — перезавантажити
+  var refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
+}
 
 render();
 </script>
