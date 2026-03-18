@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Presentation Timer</title>
+<meta name="description" content="Таймер для презентацій з планом виступу та нотатками">
+<meta name="theme-color" content="#0d0d1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+::selection { background: #4a4a6a; }
+input[type=number]::-webkit-inner-spin-button { opacity: 1; }
+textarea:focus, input:focus { outline: none; border-color: #4a4a6a !important; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+body {
+  background: #0d0d1a;
+  color: #e0e0e8;
+  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 24px 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container { max-width: 680px; margin: 0 auto; }
+
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+.status-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #555; transition: all 0.3s;
+}
+.status-dot.running { animation: pulse 1.5s ease infinite; }
+.header h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: #888;
+}
+
+.timer-card {
+  border-radius: 16px; padding: 32px 24px;
+  margin-bottom: 20px; text-align: center;
+  transition: background 0.5s ease, border-color 0.5s ease;
+  border: 1px solid transparent;
+}
+.timer-display {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: min(72px, 14vw); font-weight: 700;
+  line-height: 1; letter-spacing: -0.02em;
+  transition: color 0.5s ease;
+}
+.timer-meta {
+  display: flex; justify-content: center; gap: 24px; margin-top: 12px;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #888;
+}
+.section-label { margin-top: 12px; font-size: 14px; color: #aaa; }
+
+.progress-bar { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; width: 100%; margin-top: 20px; }
+.progress-segment {
+  border-radius: 3px; position: relative; overflow: hidden;
+  background: #1a1a2e; border: 1px solid transparent; transition: border-color 0.3s;
+}
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+
+.controls { margin-top: 24px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.btn {
+  border: none; border-radius: 8px; padding: 10px 32px;
+  font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+}
+.btn-primary { color: #0d0d1a; }
+.btn-pause { background: #2a2a3e; color: #e0e0e8; }
+.btn-reset { background: #1a1a2e; color: #888; border: 1px solid #2a2a3e !important; padding: 10px 20px; font-weight: 500; }
+
+.tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid #1a1a2e; }
+.tab-btn {
+  background: none; border: none; padding: 10px 20px;
+  font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500;
+  cursor: pointer; color: #666; border-bottom: 2px solid transparent;
+  transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+}
+.tab-btn.active { color: #e0e0e8; }
+
+.section-item {
+  background: #111122; border: 1px solid #1a1a2e; border-radius: 10px;
+  padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+  transition: all 0.3s; margin-bottom: 8px;
+}
+.section-num {
+  width: 28px; height: 28px; border-radius: 50%; background: #1a1a2e; color: #666;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+  flex-shrink: 0; transition: all 0.3s;
+}
+.section-title-input {
+  flex: 1; background: transparent; border: 1px solid transparent;
+  color: #e0e0e8; font-size: 14px; font-family: 'Outfit', sans-serif;
+  padding: 4px 8px; border-radius: 6px; min-width: 0;
+}
+.section-minutes {
+  width: 48px; background: #0d0d1a; border: 1px solid #2a2a3e;
+  color: #e0e0e8; font-size: 13px; font-family: 'JetBrains Mono', monospace;
+  padding: 4px 6px; border-radius: 6px; text-align: center;
+}
+.section-unit { font-size: 12px; color: #666; flex-shrink: 0; }
+.btn-remove {
+  background: none; border: none; color: #444; font-size: 18px;
+  cursor: pointer; padding: 0 4px; line-height: 1;
+}
+.btn-add {
+  background: #111122; border: 1px dashed #2a2a3e; border-radius: 10px;
+  padding: 12px; color: #555; font-size: 14px; font-family: 'Outfit', sans-serif;
+  cursor: pointer; transition: all 0.2s; width: 100%; text-align: center;
+}
+
+.note-label {
+  font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: 0.04em;
+  text-transform: uppercase; transition: color 0.3s;
+}
+.note-textarea {
+  width: 100%; background: #111122; border: 1px solid #1a1a2e;
+  border-radius: 8px; color: #ccc; font-size: 14px; font-family: 'Outfit', sans-serif;
+  padding: 10px 12px; resize: vertical; line-height: 1.6; transition: all 0.3s;
+}
+.note-block { margin-bottom: 16px; }
+
+.install-banner {
+  display: none; background: #111122; border: 1px solid #2a2a3e;
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 20px;
+  align-items: center; justify-content: space-between; gap: 12px;
+}
+.install-banner.show { display: flex; }
+.install-text { font-size: 13px; color: #aaa; }
+.btn-install {
+  background: #22c55e; color: #0d0d1a; border: none; border-radius: 6px;
+  padding: 6px 16px; font-family: 'Outfit', sans-serif; font-size: 13px;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn-dismiss {
+  background: none; border: none; color: #555; font-size: 18px;
+  cursor: pointer; padding: 0 4px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="install-banner" id="installBanner">
+    <span class="install-text">Встановити як додаток</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-install" id="btnInstall">Встановити</button>
+      <button class="btn-dismiss" id="btnDismiss">&times;</button>
+    </div>
+  </div>
+
+  <div class="header">
+    <div class="status-dot" id="statusDot"></div>
+    <h1>Presentation Timer</h1>
+  </div>
+
+  <div class="timer-card" id="timerCard">
+    <div class="timer-display" id="timerDisplay">00:00</div>
+    <div class="timer-meta">
+      <span>залишилось <span id="remaining">00:00</span></span>
+      <span>всього <span id="totalTime">00:00</span></span>
+    </div>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="section-label" id="sectionLabel"></div>
+    <div class="controls">
+      <button class="btn btn-primary" id="btnStart">Старт</button>
+      <button class="btn btn-reset" id="btnReset">Скинути</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="plan">План виступу</button>
+    <button class="tab-btn" data-tab="notes">Нотатки</button>
+  </div>
+
+  <div id="planTab"></div>
+  <div id="notesTab" style="display:none"></div>
+</div>
+
+<script>
+// ─── State ───
+let sections = JSON.parse(localStorage.getItem('pt_sections')) || [
+  { id: 1, title: 'Вступ', minutes: 2, notes: '' },
+  { id: 2, title: 'Основна частина', minutes: 10, notes: '' },
+  { id: 3, title: 'Висновки', minutes: 3, notes: '' },
+];
+let globalNotes = localStorage.getItem('pt_globalNotes') || '';
+let elapsed = 0, running = false, intervalId = null, startTime = null, elapsedBP = 0;
+let activeTab = 'plan';
+
+function fmt(s) {
+  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+function save() {
+  localStorage.setItem('pt_sections', JSON.stringify(sections));
+  localStorage.setItem('pt_globalNotes', globalNotes);
+}
+function totalSec() { return sections.reduce((a,s) => a + s.minutes*60, 0); }
+function secEnds() {
+  let a = [], acc = 0;
+  for (const s of sections) { acc += s.minutes*60; a.push(acc); }
+  return a;
+}
+function curIdx() {
+  const e = secEnds(), i = e.findIndex(end => elapsed < end);
+  return i === -1 ? sections.length - 1 : i;
+}
+function prog() { const t = totalSec(); return t > 0 ? elapsed/t : 0; }
+function zone() { const p = prog(); return p < 0.6 ? 'green' : p < 0.85 ? 'yellow' : 'red'; }
+const ZC = { green:'#22c55e', yellow:'#eab308', red:'#ef4444' };
+const ZBG = { green:'rgba(34,197,94,0.08)', yellow:'rgba(234,179,8,0.08)', red:'rgba(239,68,68,0.1)' };
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function render() {
+  const z = zone(), c = ZC[z], total = totalSec(), rem = Math.max(0, total - elapsed), si = curIdx(), ends = secEnds();
+  const dot = document.getElementById('statusDot');
+  dot.style.background = running ? c : '#555';
+  dot.style.boxShadow = running ? `0 0 12px ${c}88` : 'none';
+  dot.className = running ? 'status-dot running' : 'status-dot';
+
+  const card = document.getElementById('timerCard');
+  card.style.background = ZBG[z]; card.style.borderColor = c + '22';
+  document.getElementById('timerDisplay').textContent = fmt(elapsed);
+  document.getElementById('timerDisplay').style.color = c;
+  document.getElementById('remaining').textContent = fmt(rem);
+  document.getElementById('totalTime').textContent = fmt(total);
+  document.getElementById('sectionLabel').textContent = elapsed < total ? (sections[si]?.title||'') : 'Час вичерпано';
+
+  // Progress bar
+  const bar = document.getElementById('progressBar'); bar.innerHTML = '';
+  sections.forEach((sec,i) => {
+    const ss = i===0?0:ends[i-1], sd = sec.minutes*60;
+    const se = Math.max(0, Math.min(elapsed-ss, sd));
+    const sp = sd>0?se/sd:0, w = total>0?(sd/total)*100:0;
+    const isA = i===si && elapsed<total;
+    const seg = document.createElement('div'); seg.className='progress-segment';
+    seg.style.width = w+'%'; if(isA) seg.style.borderColor = c+'44';
+    const fill = document.createElement('div'); fill.className='progress-fill';
+    fill.style.width = (sp*100)+'%'; fill.style.background = c;
+    seg.appendChild(fill); bar.appendChild(seg);
+  });
+
+  // Button
+  const btn = document.getElementById('btnStart');
+  if (running) {
+    btn.textContent='Пауза'; btn.className='btn btn-pause'; btn.style.border=`1px solid ${c}44`; btn.style.background='#2a2a3e';
+  } else {
+    btn.textContent=elapsed===0?'Старт':'Далі'; btn.className='btn btn-primary'; btn.style.background=c; btn.style.border='none';
+  }
+  document.querySelectorAll('.tab-btn.active').forEach(t => t.style.borderBottomColor = c);
+  renderPlan(z,c,si); renderNotes(z,c,si);
+}
+
+function renderPlan(z,c,si) {
+  const con = document.getElementById('planTab'), ends=secEnds(), total=totalSec();
+  const fa = document.activeElement, fid=fa?.dataset?.secId, ff=fa?.dataset?.field;
+  const fs = fa?[fa.selectionStart,fa.selectionEnd]:null;
+  let h = '';
+  sections.forEach((sec,i) => {
+    const isA=i===si&&elapsed<total&&running;
+    const bg=isA?`${c}11`:'#111122', bd=isA?`${c}33`:'#1a1a2e';
+    const nb=isA?c:'#1a1a2e', nc=isA?'#0d0d1a':'#666';
+    h+=`<div class="section-item" style="background:${bg};border-color:${bd}">
+      <div class="section-num" style="background:${nb};color:${nc}">${i+1}</div>
+      <input class="section-title-input" value="${esc(sec.title)}" data-sec-id="${sec.id}" data-field="title">
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <input type="number" class="section-minutes" min="1" max="120" value="${sec.minutes}" data-sec-id="${sec.id}" data-field="minutes">
+        <span class="section-unit">хв</span>
+      </div>
+      <button class="btn-remove" data-remove="${sec.id}" title="Видалити">&times;</button>
+    </div>`;
+  });
+  h+=`<button class="btn-add" id="btnAdd">+ Додати секцію</button>`;
+  con.innerHTML=h;
+  if(fid&&ff){const el=con.querySelector(`[data-sec-id="${fid}"][data-field="${ff}"]`);if(el){el.focus();if(fs)try{el.setSelectionRange(fs[0],fs[1])}catch(e){}}}
+  con.querySelectorAll('.section-title-input').forEach(el=>el.addEventListener('input',e=>{
+    const s=sections.find(s=>s.id===Number(e.target.dataset.secId));if(s){s.title=e.target.value;save();renderNotes(zone(),ZC[zone()],curIdx());}
+  }));
+  con.querySelectorAll('.section-minutes').forEach(el=>el.addEventListener('input',e=>{
+    const s=sections.find(s=>s.id===Number(e.target.dataset.secId));if(s){s.minutes=Math.max(1,parseInt(e.target.value)||1);save();render();}
+  }));
+  con.querySelectorAll('[data-remove]').forEach(el=>el.addEventListener('click',e=>{
+    if(sections.length<=1)return;sections=sections.filter(s=>s.id!==Number(e.target.dataset.remove));save();render();
+  }));
+  document.getElementById('btnAdd')?.addEventListener('click',()=>{
+    sections.push({id:Date.now(),title:`Секція ${sections.length+1}`,minutes:5,notes:''});save();render();
+  });
+}
+
+function renderNotes(z,c,si) {
+  const con=document.getElementById('notesTab'),total=totalSec();
+  const fa=document.activeElement,fid=fa?.dataset?.noteId;
+  const fs=fa?[fa.selectionStart,fa.selectionEnd]:null;
+  let h='';
+  sections.forEach((sec,i)=>{
+    const isA=i===si&&elapsed<total&&running;
+    const lc=isA?c:'#666',bg=isA?`${c}08`:'#111122',bd=isA?`${c}33`:'#1a1a2e';
+    h+=`<div class="note-block"><div class="note-label" style="color:${lc}">${i+1}. ${esc(sec.title)}</div>
+      <textarea class="note-textarea" rows="3" data-note-id="${sec.id}" data-note-type="section"
+        style="background:${bg};border-color:${bd}" placeholder="Нотатки для цієї секції...">${esc(sec.notes)}</textarea></div>`;
+  });
+  h+=`<div class="note-block" style="margin-top:8px"><div class="note-label">Загальні нотатки</div>
+    <textarea class="note-textarea" rows="5" data-note-id="global" data-note-type="global"
+      placeholder="Загальні нотатки до виступу...">${esc(globalNotes)}</textarea></div>`;
+  con.innerHTML=h;
+  if(fid){const el=con.querySelector(`[data-note-id="${fid}"]`);if(el){el.focus();if(fs)try{el.setSelectionRange(fs[0],fs[1])}catch(e){}}}
+  con.querySelectorAll('textarea[data-note-type="section"]').forEach(el=>el.addEventListener('input',e=>{
+    const s=sections.find(s=>s.id===Number(e.target.dataset.noteId));if(s){s.notes=e.target.value;save();}
+  }));
+  con.querySelector('textarea[data-note-type="global"]')?.addEventListener('input',e=>{globalNotes=e.target.value;save();});
+}
+
+// ─── Timer ───
+document.getElementById('btnStart').addEventListener('click',()=>{
+  if(running){running=false;clearInterval(intervalId);elapsedBP=elapsed;render();return;}
+  running=true;elapsedBP=elapsed;startTime=Date.now();
+  intervalId=setInterval(()=>{elapsed=Math.min(elapsedBP+Math.floor((Date.now()-startTime)/1000),totalSec());render();},200);
+  render();
+});
+document.getElementById('btnReset').addEventListener('click',()=>{
+  running=false;clearInterval(intervalId);elapsed=0;elapsedBP=0;render();
+});
+
+// ─── Tabs ───
+document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',e=>{
+  activeTab=e.target.dataset.tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById('planTab').style.display=activeTab==='plan'?'':'none';
+  document.getElementById('notesTab').style.display=activeTab==='notes'?'':'none';
+  render();
+}));
+
+// ─── PWA ───
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBanner').classList.add('show');});
+document.getElementById('btnInstall')?.addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;document.getElementById('installBanner').classList.remove('show');});
+document.getElementById('btnDismiss')?.addEventListener('click',()=>document.getElementById('installBanner').classList.remove('show'));
+window.addEventListener('appinstalled',()=>document.getElementById('installBanner').classList.remove('show'));
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+render();
+</script>
+</body>
+</html>
