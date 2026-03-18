@@ -13,24 +13,73 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* ─── CSS Variables for theming ─── */
+:root {
+  --bg: #0d0d1a;
+  --bg-card: #111122;
+  --bg-input: #0d0d1a;
+  --border: #1a1a2e;
+  --border-hover: #2a2a3e;
+  --text: #e0e0e8;
+  --text-muted: #888;
+  --text-dim: #666;
+  --text-dimmer: #555;
+  --text-dimmest: #444;
+  --selection: #4a4a6a;
+  --btn-pause-bg: #2a2a3e;
+  --btn-reset-bg: #1a1a2e;
+  --num-bg: #1a1a2e;
+  --num-color: #666;
+  --progress-bg: #1a1a2e;
+  --note-text: #ccc;
+  --drag-handle: #444;
+}
+
+[data-theme="light"] {
+  --bg: #faf9f7;
+  --bg-card: #ffffff;
+  --bg-input: #f5f4f2;
+  --border: #e8e6e1;
+  --border-hover: #d5d3ce;
+  --text: #2d2b28;
+  --text-muted: #6b6965;
+  --text-dim: #8a8884;
+  --text-dimmer: #a8a6a2;
+  --text-dimmest: #c0beb9;
+  --selection: #d4c8a8;
+  --btn-pause-bg: #eeede8;
+  --btn-reset-bg: #f0efec;
+  --num-bg: #eeede8;
+  --num-color: #8a8884;
+  --progress-bg: #e8e6e1;
+  --note-text: #4a4845;
+  --drag-handle: #c0beb9;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-::selection { background: #4a4a6a; }
+::selection { background: var(--selection); }
 input[type=number]::-webkit-inner-spin-button { opacity: 1; }
-textarea:focus, input:focus { outline: none; border-color: #4a4a6a !important; }
+textarea:focus, input:focus { outline: none; border-color: var(--border-hover) !important; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
 
+@keyframes warningFlash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 body {
-  background: #0d0d1a;
-  color: #e0e0e8;
+  background: var(--bg);
+  color: var(--text);
   font-family: 'Outfit', sans-serif;
   min-height: 100vh;
   min-height: 100dvh;
   padding: 24px 16px;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 .container { max-width: 680px; margin: 0 auto; }
@@ -38,13 +87,33 @@ body {
 .header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
 .status-dot {
   width: 10px; height: 10px; border-radius: 50%;
-  background: #555; transition: all 0.3s;
+  background: var(--text-dimmer); transition: all 0.3s;
 }
 .status-dot.running { animation: pulse 1.5s ease infinite; }
 .header h1 {
   font-family: 'JetBrains Mono', monospace;
   font-size: 16px; font-weight: 600;
-  letter-spacing: 0.08em; text-transform: uppercase; color: #888;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+  flex: 1;
+}
+
+.theme-toggle {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-toggle:hover {
+  border-color: var(--border-hover);
+  color: var(--text);
 }
 
 .timer-card {
@@ -59,16 +128,35 @@ body {
   line-height: 1; letter-spacing: -0.02em;
   transition: color 0.5s ease;
 }
+.timer-subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--text-muted);
+  margin-top: 6px; letter-spacing: 0.04em; text-transform: uppercase;
+}
 .timer-meta {
   display: flex; justify-content: center; gap: 24px; margin-top: 12px;
-  font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #888;
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted);
 }
-.section-label { margin-top: 12px; font-size: 14px; color: #aaa; }
+.section-label { margin-top: 12px; font-size: 14px; color: var(--text-dim); }
+
+.block-warning {
+  display: none;
+  margin-top: 10px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  animation: warningFlash 1.2s ease infinite;
+}
+.block-warning.show { display: inline-block; }
+.block-warning.warn-3 { background: rgba(234,179,8,0.15); color: #eab308; }
+.block-warning.warn-1 { background: rgba(239,68,68,0.15); color: #ef4444; }
 
 .progress-bar { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; width: 100%; margin-top: 20px; }
 .progress-segment {
   border-radius: 3px; position: relative; overflow: hidden;
-  background: #1a1a2e; border: 1px solid transparent; transition: border-color 0.3s;
+  background: var(--progress-bg); border: 1px solid transparent; transition: border-color 0.3s;
 }
 .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
 
@@ -78,82 +166,110 @@ body {
   font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600;
   cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent;
 }
-.btn-primary { color: #0d0d1a; }
-.btn-pause { background: #2a2a3e; color: #e0e0e8; }
-.btn-reset { background: #1a1a2e; color: #888; border: 1px solid #2a2a3e !important; padding: 10px 20px; font-weight: 500; }
+.btn-primary { color: #fff; }
+.btn-pause { background: var(--btn-pause-bg); color: var(--text); }
+.btn-reset { background: var(--btn-reset-bg); color: var(--text-muted); border: 1px solid var(--border-hover) !important; padding: 10px 20px; font-weight: 500; }
 
-.tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid #1a1a2e; }
+.tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
 .tab-btn {
   background: none; border: none; padding: 10px 20px;
   font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 500;
-  cursor: pointer; color: #666; border-bottom: 2px solid transparent;
+  cursor: pointer; color: var(--text-dim); border-bottom: 2px solid transparent;
   transition: all 0.2s; -webkit-tap-highlight-color: transparent;
 }
-.tab-btn.active { color: #e0e0e8; }
+.tab-btn.active { color: var(--text); }
 
 .section-item {
-  background: #111122; border: 1px solid #1a1a2e; border-radius: 10px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
   padding: 14px 16px; display: flex; align-items: center; gap: 12px;
   transition: all 0.3s; margin-bottom: 8px;
+  position: relative;
 }
+.section-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+.section-item.drag-over {
+  border-color: var(--text-muted) !important;
+  border-style: dashed;
+}
+.drag-handle {
+  cursor: grab;
+  color: var(--drag-handle);
+  font-size: 16px;
+  padding: 0 2px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+.drag-handle:hover { color: var(--text-muted); }
+.drag-handle:active { cursor: grabbing; }
+.drag-handle svg { width: 16px; height: 16px; }
+
 .section-num {
-  width: 28px; height: 28px; border-radius: 50%; background: #1a1a2e; color: #666;
+  width: 28px; height: 28px; border-radius: 50%; background: var(--num-bg); color: var(--num-color);
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
   flex-shrink: 0; transition: all 0.3s;
 }
 .section-title-input {
   flex: 1; background: transparent; border: 1px solid transparent;
-  color: #e0e0e8; font-size: 14px; font-family: 'Outfit', sans-serif;
+  color: var(--text); font-size: 14px; font-family: 'Outfit', sans-serif;
   padding: 4px 8px; border-radius: 6px; min-width: 0;
 }
 .section-minutes {
-  width: 48px; background: #0d0d1a; border: 1px solid #2a2a3e;
-  color: #e0e0e8; font-size: 13px; font-family: 'JetBrains Mono', monospace;
+  width: 48px; background: var(--bg-input); border: 1px solid var(--border-hover);
+  color: var(--text); font-size: 13px; font-family: 'JetBrains Mono', monospace;
   padding: 4px 6px; border-radius: 6px; text-align: center;
 }
-.section-unit { font-size: 12px; color: #666; flex-shrink: 0; }
+.section-unit { font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
 .btn-remove {
-  background: none; border: none; color: #444; font-size: 18px;
+  background: none; border: none; color: var(--text-dimmest); font-size: 18px;
   cursor: pointer; padding: 0 4px; line-height: 1;
 }
 .btn-add {
-  background: #111122; border: 1px dashed #2a2a3e; border-radius: 10px;
-  padding: 12px; color: #555; font-size: 14px; font-family: 'Outfit', sans-serif;
+  background: var(--bg-card); border: 1px dashed var(--border-hover); border-radius: 10px;
+  padding: 12px; color: var(--text-dimmer); font-size: 14px; font-family: 'Outfit', sans-serif;
   cursor: pointer; transition: all 0.2s; width: 100%; text-align: center;
 }
 
 .note-label {
-  font-size: 12px; font-weight: 600; color: #666; margin-bottom: 6px;
+  font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px;
   font-family: 'JetBrains Mono', monospace; letter-spacing: 0.04em;
   text-transform: uppercase; transition: color 0.3s;
 }
 .note-textarea {
-  width: 100%; background: #111122; border: 1px solid #1a1a2e;
-  border-radius: 8px; color: #ccc; font-size: 14px; font-family: 'Outfit', sans-serif;
+  width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--note-text); font-size: 14px; font-family: 'Outfit', sans-serif;
   padding: 10px 12px; resize: vertical; line-height: 1.6; transition: all 0.3s;
 }
 .note-block { margin-bottom: 16px; }
 
 .install-banner {
-  display: none; background: #111122; border: 1px solid #2a2a3e;
+  display: none; background: var(--bg-card); border: 1px solid var(--border-hover);
   border-radius: 10px; padding: 12px 16px; margin-bottom: 20px;
   align-items: center; justify-content: space-between; gap: 12px;
 }
 .install-banner.show { display: flex; }
-.install-text { font-size: 13px; color: #aaa; }
+.install-text { font-size: 13px; color: var(--text-dim); }
 .btn-install {
-  background: #22c55e; color: #0d0d1a; border: none; border-radius: 6px;
+  background: #22c55e; color: #fff; border: none; border-radius: 6px;
   padding: 6px 16px; font-family: 'Outfit', sans-serif; font-size: 13px;
   font-weight: 600; cursor: pointer; white-space: nowrap;
 }
 .btn-dismiss {
-  background: none; border: none; color: #555; font-size: 18px;
+  background: none; border: none; color: var(--text-dimmer); font-size: 18px;
   cursor: pointer; padding: 0 4px;
+}
+
+@media (max-width: 480px) {
+  .drag-handle { padding: 4px 6px; }
 }
 </style>
 </head>
-<body>
+<body data-theme="dark">
 
 <div class="container">
   <div class="install-banner" id="installBanner">
@@ -167,14 +283,17 @@ body {
   <div class="header">
     <div class="status-dot" id="statusDot"></div>
     <h1>Presentation Timer</h1>
+    <button class="theme-toggle" id="themeToggle" title="Змінити тему">☀</button>
   </div>
 
   <div class="timer-card" id="timerCard">
     <div class="timer-display" id="timerDisplay">00:00</div>
+    <div class="timer-subtitle" id="timerSubtitle">до завершення блоку</div>
     <div class="timer-meta">
-      <span>залишилось <span id="remaining">00:00</span></span>
+      <span>залишилось всього <span id="remaining">00:00</span></span>
       <span>всього <span id="totalTime">00:00</span></span>
     </div>
+    <div class="block-warning" id="blockWarning"></div>
     <div class="progress-bar" id="progressBar"></div>
     <div class="section-label" id="sectionLabel"></div>
     <div class="controls">
@@ -194,165 +313,408 @@ body {
 
 <script>
 // ─── State ───
+// sections — масив об'єктів {id, title, minutes, notes}, кожен описує один блок презентації
 let sections = JSON.parse(localStorage.getItem('pt_sections')) || [
   { id: 1, title: 'Вступ', minutes: 2, notes: '' },
   { id: 2, title: 'Основна частина', minutes: 10, notes: '' },
   { id: 3, title: 'Висновки', minutes: 3, notes: '' },
 ];
+// globalNotes — загальні нотатки до виступу (рядок)
 let globalNotes = localStorage.getItem('pt_globalNotes') || '';
+// elapsed — скільки секунд пройшло з початку таймера
+// running — чи працює таймер зараз (boolean)
+// intervalId — ID інтервалу setInterval для зупинки
+// startTime — мітка часу (Date.now()) коли натиснули "старт"
+// elapsedBP — кількість секунд, що вже пройшли до натискання "старт" (для паузи)
 let elapsed = 0, running = false, intervalId = null, startTime = null, elapsedBP = 0;
+// activeTab — яка вкладка відкрита: 'plan' або 'notes'
 let activeTab = 'plan';
+// dragSrcIdx — індекс елемента, який перетягують (drag & drop)
+let dragSrcIdx = null;
 
-function fmt(s) {
-  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+// ─── Theme ───
+// theme — 'dark' або 'light', зберігається в localStorage
+let theme = localStorage.getItem('pt_theme') || 'dark';
+document.body.setAttribute('data-theme', theme);
+updateThemeIcon();
+
+// themeToggle — кнопка перемикання теми
+document.getElementById('themeToggle').addEventListener('click', function() {
+  // перемикає тему між 'dark' і 'light'
+  theme = theme === 'dark' ? 'light' : 'dark';
+  document.body.setAttribute('data-theme', theme);
+  localStorage.setItem('pt_theme', theme);
+  updateThemeIcon();
+  // оновлює meta тег theme-color для мобільних браузерів
+  document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#0d0d1a' : '#faf9f7';
+});
+
+function updateThemeIcon() {
+  // ☀ — сонце (показується в темній темі, натиск перемикає на світлу)
+  // ☽ — місяць (показується в світлій темі, натиск перемикає на темну)
+  document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀' : '☽';
 }
+
+// ─── Helpers ───
+// fmt(s) — форматує секунди у рядок MM:SS
+function fmt(s) {
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+// save() — зберігає секції та нотатки в localStorage
 function save() {
   localStorage.setItem('pt_sections', JSON.stringify(sections));
   localStorage.setItem('pt_globalNotes', globalNotes);
 }
-function totalSec() { return sections.reduce((a,s) => a + s.minutes*60, 0); }
+// totalSec() — загальна тривалість всіх блоків у секундах
+function totalSec() { return sections.reduce(function(a, s) { return a + s.minutes * 60; }, 0); }
+// secEnds() — масив кумулятивних закінчень блоків у секундах: [120, 720, 900]
 function secEnds() {
-  let a = [], acc = 0;
-  for (const s of sections) { acc += s.minutes*60; a.push(acc); }
+  var a = [], acc = 0;
+  for (var i = 0; i < sections.length; i++) { acc += sections[i].minutes * 60; a.push(acc); }
   return a;
 }
+// curIdx() — індекс поточного блоку (в якому зараз таймер)
 function curIdx() {
-  const e = secEnds(), i = e.findIndex(end => elapsed < end);
+  var e = secEnds(), i = e.findIndex(function(end) { return elapsed < end; });
   return i === -1 ? sections.length - 1 : i;
 }
-function prog() { const t = totalSec(); return t > 0 ? elapsed/t : 0; }
-function zone() { const p = prog(); return p < 0.6 ? 'green' : p < 0.85 ? 'yellow' : 'red'; }
-const ZC = { green:'#22c55e', yellow:'#eab308', red:'#ef4444' };
-const ZBG = { green:'rgba(34,197,94,0.08)', yellow:'rgba(234,179,8,0.08)', red:'rgba(239,68,68,0.1)' };
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// prog() — прогрес від 0 до 1 (скільки пройшло від загального часу)
+function prog() { var t = totalSec(); return t > 0 ? elapsed / t : 0; }
+// zone() — повертає 'green', 'yellow' або 'red' залежно від прогресу
+function zone() { var p = prog(); return p < 0.6 ? 'green' : p < 0.85 ? 'yellow' : 'red'; }
+// ZC — кольори зон: зелений, жовтий, червоний
+var ZC = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' };
+// ZBG — фонові кольори зон з прозорістю для темної та світлої теми
+var ZBG_DARK = { green: 'rgba(34,197,94,0.08)', yellow: 'rgba(234,179,8,0.08)', red: 'rgba(239,68,68,0.1)' };
+var ZBG_LIGHT = { green: 'rgba(34,197,94,0.06)', yellow: 'rgba(234,179,8,0.06)', red: 'rgba(239,68,68,0.06)' };
+function getZBG() { return theme === 'dark' ? ZBG_DARK : ZBG_LIGHT; }
 
+// esc(s) — екранує HTML-символи щоб уникнути XSS
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+// ─── Block remaining time ───
+// blockRemaining() — повертає скільки секунд залишилось до кінця ПОТОЧНОГО блоку
+function blockRemaining() {
+  var ends = secEnds();
+  var total = totalSec();
+  if (elapsed >= total) return 0;
+  var si = curIdx();
+  return Math.max(0, ends[si] - elapsed);
+}
+
+// ─── Main render ───
 function render() {
-  const z = zone(), c = ZC[z], total = totalSec(), rem = Math.max(0, total - elapsed), si = curIdx(), ends = secEnds();
-  const dot = document.getElementById('statusDot');
-  dot.style.background = running ? c : '#555';
-  dot.style.boxShadow = running ? `0 0 12px ${c}88` : 'none';
+  var z = zone(), c = ZC[z], total = totalSec(), rem = Math.max(0, total - elapsed);
+  var si = curIdx(), ends = secEnds();
+  var blockRem = blockRemaining();
+
+  // Status dot — індикатор стану (зелений/жовтий/червоний коли працює, сірий коли пауза)
+  var dot = document.getElementById('statusDot');
+  dot.style.background = running ? c : 'var(--text-dimmer)';
+  dot.style.boxShadow = running ? '0 0 12px ' + c + '88' : 'none';
   dot.className = running ? 'status-dot running' : 'status-dot';
 
-  const card = document.getElementById('timerCard');
-  card.style.background = ZBG[z]; card.style.borderColor = c + '22';
-  document.getElementById('timerDisplay').textContent = fmt(elapsed);
+  // Timer card — фон картки таймера змінюється за зоною
+  var card = document.getElementById('timerCard');
+  card.style.background = getZBG()[z]; card.style.borderColor = c + '22';
+
+  // Головний таймер — показує час до завершення ПОТОЧНОГО БЛОКУ (зворотний відлік)
+  document.getElementById('timerDisplay').textContent = fmt(blockRem);
   document.getElementById('timerDisplay').style.color = c;
+
+  // Підзаголовок таймера
+  var subtitle = document.getElementById('timerSubtitle');
+  if (elapsed >= total) {
+    subtitle.textContent = '';
+  } else {
+    subtitle.textContent = 'до завершення блоку';
+  }
+
+  // залишилось всього — загальний залишок часу по всій презентації
   document.getElementById('remaining').textContent = fmt(rem);
   document.getElementById('totalTime').textContent = fmt(total);
-  document.getElementById('sectionLabel').textContent = elapsed < total ? (sections[si]?.title||'') : 'Час вичерпано';
+  document.getElementById('sectionLabel').textContent = elapsed < total ? (sections[si] ? sections[si].title : '') : 'Час вичерпано';
 
-  // Progress bar
-  const bar = document.getElementById('progressBar'); bar.innerHTML = '';
-  sections.forEach((sec,i) => {
-    const ss = i===0?0:ends[i-1], sd = sec.minutes*60;
-    const se = Math.max(0, Math.min(elapsed-ss, sd));
-    const sp = sd>0?se/sd:0, w = total>0?(sd/total)*100:0;
-    const isA = i===si && elapsed<total;
-    const seg = document.createElement('div'); seg.className='progress-segment';
-    seg.style.width = w+'%'; if(isA) seg.style.borderColor = c+'44';
-    const fill = document.createElement('div'); fill.className='progress-fill';
-    fill.style.width = (sp*100)+'%'; fill.style.background = c;
+  // ─── Block warning (попередження за 3 хв та 1 хв до кінця блоку) ───
+  var warnEl = document.getElementById('blockWarning');
+  // Попередження показується тільки якщо таймер працює, час не вичерпано,
+  // і блок довший за 1 хвилину (інакше попередження немає сенсу)
+  if (running && elapsed < total && sections[si].minutes * 60 > 60) {
+    // blockRem — скільки секунд залишилось до кінця блоку
+    if (blockRem <= 60 && blockRem > 0) {
+      // менше 1 хвилини — червоне попередження
+      warnEl.className = 'block-warning show warn-1';
+      warnEl.textContent = '\u26A0 Менше 1 хв до кінця блоку!';
+    } else if (blockRem <= 180 && blockRem > 60) {
+      // менше 3 хвилин — жовте попередження
+      warnEl.className = 'block-warning show warn-3';
+      warnEl.textContent = '\u23F3 3 хв до кінця блоку';
+    } else {
+      warnEl.className = 'block-warning';
+    }
+  } else {
+    warnEl.className = 'block-warning';
+  }
+
+  // ─── Progress bar — сегментований прогрес-бар ───
+  var bar = document.getElementById('progressBar'); bar.innerHTML = '';
+  sections.forEach(function(sec, i) {
+    // ss — початок блоку в секундах, sd — тривалість блоку
+    var ss = i === 0 ? 0 : ends[i - 1], sd = sec.minutes * 60;
+    // se — скільки секунд пройшло в цьому блоці
+    var se = Math.max(0, Math.min(elapsed - ss, sd));
+    // sp — прогрес блоку від 0 до 1, w — ширина сегмента у %
+    var sp = sd > 0 ? se / sd : 0, w = total > 0 ? (sd / total) * 100 : 0;
+    var isA = i === si && elapsed < total;
+    var seg = document.createElement('div'); seg.className = 'progress-segment';
+    seg.style.width = w + '%'; if (isA) seg.style.borderColor = c + '44';
+    var fill = document.createElement('div'); fill.className = 'progress-fill';
+    fill.style.width = (sp * 100) + '%'; fill.style.background = c;
     seg.appendChild(fill); bar.appendChild(seg);
   });
 
-  // Button
-  const btn = document.getElementById('btnStart');
+  // ─── Start/Pause button ───
+  var btn = document.getElementById('btnStart');
   if (running) {
-    btn.textContent='Пауза'; btn.className='btn btn-pause'; btn.style.border=`1px solid ${c}44`; btn.style.background='#2a2a3e';
+    btn.textContent = 'Пауза'; btn.className = 'btn btn-pause'; btn.style.border = '1px solid ' + c + '44'; btn.style.background = 'var(--btn-pause-bg)';
   } else {
-    btn.textContent=elapsed===0?'Старт':'Далі'; btn.className='btn btn-primary'; btn.style.background=c; btn.style.border='none';
+    btn.textContent = elapsed === 0 ? 'Старт' : 'Далі'; btn.className = 'btn btn-primary'; btn.style.background = c; btn.style.border = 'none';
   }
-  document.querySelectorAll('.tab-btn.active').forEach(t => t.style.borderBottomColor = c);
-  renderPlan(z,c,si); renderNotes(z,c,si);
+  // Активний таб підкреслюється кольором зони
+  document.querySelectorAll('.tab-btn.active').forEach(function(t) { t.style.borderBottomColor = c; });
+  renderPlan(z, c, si); renderNotes(z, c, si);
 }
 
-function renderPlan(z,c,si) {
-  const con = document.getElementById('planTab'), ends=secEnds(), total=totalSec();
-  const fa = document.activeElement, fid=fa?.dataset?.secId, ff=fa?.dataset?.field;
-  const fs = fa?[fa.selectionStart,fa.selectionEnd]:null;
-  let h = '';
-  sections.forEach((sec,i) => {
-    const isA=i===si&&elapsed<total&&running;
-    const bg=isA?`${c}11`:'#111122', bd=isA?`${c}33`:'#1a1a2e';
-    const nb=isA?c:'#1a1a2e', nc=isA?'#0d0d1a':'#666';
-    h+=`<div class="section-item" style="background:${bg};border-color:${bd}">
-      <div class="section-num" style="background:${nb};color:${nc}">${i+1}</div>
-      <input class="section-title-input" value="${esc(sec.title)}" data-sec-id="${sec.id}" data-field="title">
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-        <input type="number" class="section-minutes" min="1" max="120" value="${sec.minutes}" data-sec-id="${sec.id}" data-field="minutes">
-        <span class="section-unit">хв</span>
-      </div>
-      <button class="btn-remove" data-remove="${sec.id}" title="Видалити">&times;</button>
-    </div>`;
+// ─── Plan tab ───
+function renderPlan(z, c, si) {
+  var con = document.getElementById('planTab'), ends = secEnds(), total = totalSec();
+  // Зберігаємо фокус та позицію курсора щоб не втрачати під час ре-рендеру
+  var fa = document.activeElement, fid = fa ? fa.dataset.secId : null, ff = fa ? fa.dataset.field : null;
+  var fs = fa ? [fa.selectionStart, fa.selectionEnd] : null;
+  var h = '';
+  sections.forEach(function(sec, i) {
+    // isA — чи цей блок зараз активний (підсвічується)
+    var isA = i === si && elapsed < total && running;
+    var bg = isA ? c + '11' : 'var(--bg-card)', bd = isA ? c + '33' : 'var(--border)';
+    var nb = isA ? c : 'var(--num-bg)', nc = isA ? '#fff' : 'var(--num-color)';
+    // SVG іконка drag handle — 6 точок для перетягування
+    h += '<div class="section-item" draggable="true" data-idx="' + i + '" style="background:' + bg + ';border-color:' + bd + '">'
+      + '<div class="drag-handle" title="Перетягнути">'
+      + '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>'
+      + '</div>'
+      + '<div class="section-num" style="background:' + nb + ';color:' + nc + '">' + (i + 1) + '</div>'
+      + '<input class="section-title-input" value="' + esc(sec.title) + '" data-sec-id="' + sec.id + '" data-field="title">'
+      + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+      + '<input type="number" class="section-minutes" min="1" max="120" value="' + sec.minutes + '" data-sec-id="' + sec.id + '" data-field="minutes">'
+      + '<span class="section-unit">хв</span>'
+      + '</div>'
+      + '<button class="btn-remove" data-remove="' + sec.id + '" title="Видалити">&times;</button>'
+      + '</div>';
   });
-  h+=`<button class="btn-add" id="btnAdd">+ Додати секцію</button>`;
-  con.innerHTML=h;
-  if(fid&&ff){const el=con.querySelector(`[data-sec-id="${fid}"][data-field="${ff}"]`);if(el){el.focus();if(fs)try{el.setSelectionRange(fs[0],fs[1])}catch(e){}}}
-  con.querySelectorAll('.section-title-input').forEach(el=>el.addEventListener('input',e=>{
-    const s=sections.find(s=>s.id===Number(e.target.dataset.secId));if(s){s.title=e.target.value;save();renderNotes(zone(),ZC[zone()],curIdx());}
-  }));
-  con.querySelectorAll('.section-minutes').forEach(el=>el.addEventListener('input',e=>{
-    const s=sections.find(s=>s.id===Number(e.target.dataset.secId));if(s){s.minutes=Math.max(1,parseInt(e.target.value)||1);save();render();}
-  }));
-  con.querySelectorAll('[data-remove]').forEach(el=>el.addEventListener('click',e=>{
-    if(sections.length<=1)return;sections=sections.filter(s=>s.id!==Number(e.target.dataset.remove));save();render();
-  }));
-  document.getElementById('btnAdd')?.addEventListener('click',()=>{
-    sections.push({id:Date.now(),title:`Секція ${sections.length+1}`,minutes:5,notes:''});save();render();
+  h += '<button class="btn-add" id="btnAdd">+ Додати секцію</button>';
+  con.innerHTML = h;
+
+  // Відновлюємо фокус на елементі де був курсор
+  if (fid && ff) {
+    var el = con.querySelector('[data-sec-id="' + fid + '"][data-field="' + ff + '"]');
+    if (el) { el.focus(); if (fs) try { el.setSelectionRange(fs[0], fs[1]); } catch (e) {} }
+  }
+
+  // ─── Event listeners для зміни назви блоку ───
+  con.querySelectorAll('.section-title-input').forEach(function(el) {
+    el.addEventListener('input', function(e) {
+      var s = sections.find(function(s) { return s.id === Number(e.target.dataset.secId); });
+      if (s) { s.title = e.target.value; save(); renderNotes(zone(), ZC[zone()], curIdx()); }
+    });
+  });
+  // ─── Event listeners для зміни тривалості блоку ───
+  con.querySelectorAll('.section-minutes').forEach(function(el) {
+    el.addEventListener('input', function(e) {
+      var s = sections.find(function(s) { return s.id === Number(e.target.dataset.secId); });
+      if (s) { s.minutes = Math.max(1, parseInt(e.target.value) || 1); save(); render(); }
+    });
+  });
+  // ─── Event listeners для видалення блоку ───
+  con.querySelectorAll('[data-remove]').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      if (sections.length <= 1) return;
+      sections = sections.filter(function(s) { return s.id !== Number(e.target.dataset.remove); });
+      save(); render();
+    });
+  });
+  // ─── Кнопка додавання нового блоку ───
+  var btnAdd = document.getElementById('btnAdd');
+  if (btnAdd) {
+    btnAdd.addEventListener('click', function() {
+      sections.push({ id: Date.now(), title: 'Секція ' + (sections.length + 1), minutes: 5, notes: '' });
+      save(); render();
+    });
+  }
+
+  // ─── Drag & Drop для зміни порядку блоків ───
+  var items = con.querySelectorAll('.section-item[draggable]');
+  items.forEach(function(item) {
+    // dragstart — початок перетягування, зберігаємо індекс елемента
+    item.addEventListener('dragstart', function(e) {
+      dragSrcIdx = Number(item.dataset.idx);
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // Для Firefox потрібно встановити дані
+      e.dataTransfer.setData('text/plain', String(dragSrcIdx));
+    });
+    // dragend — завершення перетягування, знімаємо стилі
+    item.addEventListener('dragend', function() {
+      item.classList.remove('dragging');
+      con.querySelectorAll('.section-item').forEach(function(el) { el.classList.remove('drag-over'); });
+      dragSrcIdx = null;
+    });
+    // dragover — дозволяємо скидання (drop) на цей елемент
+    item.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      item.classList.add('drag-over');
+    });
+    // dragleave — прибираємо стиль коли курсор виходить з елемента
+    item.addEventListener('dragleave', function() {
+      item.classList.remove('drag-over');
+    });
+    // drop — скидання: переміщуємо елемент на нову позицію
+    item.addEventListener('drop', function(e) {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      var targetIdx = Number(item.dataset.idx);
+      if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) {
+        // splice(dragSrcIdx, 1) — вилучає елемент з позиції dragSrcIdx
+        var moved = sections.splice(dragSrcIdx, 1)[0];
+        // splice(targetIdx, 0, moved) — вставляє його на позицію targetIdx
+        sections.splice(targetIdx, 0, moved);
+        save(); render();
+      }
+    });
+
+    // ─── Touch events для мобільних пристроїв ───
+    var touchItem = null;
+    var handle = item.querySelector('.drag-handle');
+
+    handle.addEventListener('touchstart', function(e) {
+      touchItem = item;
+      dragSrcIdx = Number(item.dataset.idx);
+      item.classList.add('dragging');
+    }, { passive: true });
+
+    handle.addEventListener('touchmove', function(e) {
+      e.preventDefault();
+      var touchY = e.touches[0].clientY;
+      // Знаходимо елемент під пальцем
+      var allItems = Array.from(con.querySelectorAll('.section-item[draggable]'));
+      allItems.forEach(function(el) { el.classList.remove('drag-over'); });
+      var target = allItems.find(function(el) {
+        var rect = el.getBoundingClientRect();
+        return touchY >= rect.top && touchY <= rect.bottom && el !== touchItem;
+      });
+      if (target) target.classList.add('drag-over');
+    }, { passive: false });
+
+    handle.addEventListener('touchend', function(e) {
+      if (!touchItem) return;
+      touchItem.classList.remove('dragging');
+      var touchY = e.changedTouches[0].clientY;
+      var allItems = Array.from(con.querySelectorAll('.section-item[draggable]'));
+      allItems.forEach(function(el) { el.classList.remove('drag-over'); });
+      var target = allItems.find(function(el) {
+        var rect = el.getBoundingClientRect();
+        return touchY >= rect.top && touchY <= rect.bottom && el !== touchItem;
+      });
+      if (target) {
+        var targetIdx = Number(target.dataset.idx);
+        if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) {
+          var moved = sections.splice(dragSrcIdx, 1)[0];
+          sections.splice(targetIdx, 0, moved);
+          save(); render();
+        }
+      }
+      touchItem = null;
+      dragSrcIdx = null;
+    });
   });
 }
 
-function renderNotes(z,c,si) {
-  const con=document.getElementById('notesTab'),total=totalSec();
-  const fa=document.activeElement,fid=fa?.dataset?.noteId;
-  const fs=fa?[fa.selectionStart,fa.selectionEnd]:null;
-  let h='';
-  sections.forEach((sec,i)=>{
-    const isA=i===si&&elapsed<total&&running;
-    const lc=isA?c:'#666',bg=isA?`${c}08`:'#111122',bd=isA?`${c}33`:'#1a1a2e';
-    h+=`<div class="note-block"><div class="note-label" style="color:${lc}">${i+1}. ${esc(sec.title)}</div>
-      <textarea class="note-textarea" rows="3" data-note-id="${sec.id}" data-note-type="section"
-        style="background:${bg};border-color:${bd}" placeholder="Нотатки для цієї секції...">${esc(sec.notes)}</textarea></div>`;
+// ─── Notes tab ───
+function renderNotes(z, c, si) {
+  var con = document.getElementById('notesTab'), total = totalSec();
+  var fa = document.activeElement, fid = fa ? fa.dataset.noteId : null;
+  var fs = fa ? [fa.selectionStart, fa.selectionEnd] : null;
+  var h = '';
+  sections.forEach(function(sec, i) {
+    var isA = i === si && elapsed < total && running;
+    var lc = isA ? c : 'var(--text-dim)', bg = isA ? c + '08' : 'var(--bg-card)', bd = isA ? c + '33' : 'var(--border)';
+    h += '<div class="note-block"><div class="note-label" style="color:' + lc + '">' + (i + 1) + '. ' + esc(sec.title) + '</div>'
+      + '<textarea class="note-textarea" rows="3" data-note-id="' + sec.id + '" data-note-type="section"'
+      + ' style="background:' + bg + ';border-color:' + bd + '" placeholder="Нотатки для цієї секції...">' + esc(sec.notes) + '</textarea></div>';
   });
-  h+=`<div class="note-block" style="margin-top:8px"><div class="note-label">Загальні нотатки</div>
-    <textarea class="note-textarea" rows="5" data-note-id="global" data-note-type="global"
-      placeholder="Загальні нотатки до виступу...">${esc(globalNotes)}</textarea></div>`;
-  con.innerHTML=h;
-  if(fid){const el=con.querySelector(`[data-note-id="${fid}"]`);if(el){el.focus();if(fs)try{el.setSelectionRange(fs[0],fs[1])}catch(e){}}}
-  con.querySelectorAll('textarea[data-note-type="section"]').forEach(el=>el.addEventListener('input',e=>{
-    const s=sections.find(s=>s.id===Number(e.target.dataset.noteId));if(s){s.notes=e.target.value;save();}
-  }));
-  con.querySelector('textarea[data-note-type="global"]')?.addEventListener('input',e=>{globalNotes=e.target.value;save();});
+  h += '<div class="note-block" style="margin-top:8px"><div class="note-label">Загальні нотатки</div>'
+    + '<textarea class="note-textarea" rows="5" data-note-id="global" data-note-type="global"'
+    + ' placeholder="Загальні нотатки до виступу...">' + esc(globalNotes) + '</textarea></div>';
+  con.innerHTML = h;
+  if (fid) {
+    var el = con.querySelector('[data-note-id="' + fid + '"]');
+    if (el) { el.focus(); if (fs) try { el.setSelectionRange(fs[0], fs[1]); } catch (e) {} }
+  }
+  con.querySelectorAll('textarea[data-note-type="section"]').forEach(function(el) {
+    el.addEventListener('input', function(e) {
+      var s = sections.find(function(s) { return s.id === Number(e.target.dataset.noteId); });
+      if (s) { s.notes = e.target.value; save(); }
+    });
+  });
+  var globalTA = con.querySelector('textarea[data-note-type="global"]');
+  if (globalTA) {
+    globalTA.addEventListener('input', function(e) { globalNotes = e.target.value; save(); });
+  }
 }
 
-// ─── Timer ───
-document.getElementById('btnStart').addEventListener('click',()=>{
-  if(running){running=false;clearInterval(intervalId);elapsedBP=elapsed;render();return;}
-  running=true;elapsedBP=elapsed;startTime=Date.now();
-  intervalId=setInterval(()=>{elapsed=Math.min(elapsedBP+Math.floor((Date.now()-startTime)/1000),totalSec());render();},200);
+// ─── Timer controls ───
+// Старт/Пауза
+document.getElementById('btnStart').addEventListener('click', function() {
+  if (running) {
+    // Пауза: зупиняємо інтервал, зберігаємо поточний elapsed
+    running = false; clearInterval(intervalId); elapsedBP = elapsed; render(); return;
+  }
+  // Старт: запускаємо інтервал, що оновлює elapsed кожні 200 мс
+  running = true; elapsedBP = elapsed; startTime = Date.now();
+  intervalId = setInterval(function() {
+    elapsed = Math.min(elapsedBP + Math.floor((Date.now() - startTime) / 1000), totalSec());
+    render();
+  }, 200);
   render();
 });
-document.getElementById('btnReset').addEventListener('click',()=>{
-  running=false;clearInterval(intervalId);elapsed=0;elapsedBP=0;render();
+// Скинути: повертає таймер на 0
+document.getElementById('btnReset').addEventListener('click', function() {
+  running = false; clearInterval(intervalId); elapsed = 0; elapsedBP = 0; render();
 });
 
 // ─── Tabs ───
-document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',e=>{
-  activeTab=e.target.dataset.tab;
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  e.target.classList.add('active');
-  document.getElementById('planTab').style.display=activeTab==='plan'?'':'none';
-  document.getElementById('notesTab').style.display=activeTab==='notes'?'':'none';
-  render();
-}));
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    activeTab = e.target.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    e.target.classList.add('active');
+    document.getElementById('planTab').style.display = activeTab === 'plan' ? '' : 'none';
+    document.getElementById('notesTab').style.display = activeTab === 'notes' ? '' : 'none';
+    render();
+  });
+});
 
 // ─── PWA ───
-let deferredPrompt=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBanner').classList.add('show');});
-document.getElementById('btnInstall')?.addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;document.getElementById('installBanner').classList.remove('show');});
-document.getElementById('btnDismiss')?.addEventListener('click',()=>document.getElementById('installBanner').classList.remove('show'));
-window.addEventListener('appinstalled',()=>document.getElementById('installBanner').classList.remove('show'));
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) { e.preventDefault(); deferredPrompt = e; document.getElementById('installBanner').classList.add('show'); });
+document.getElementById('btnInstall').addEventListener('click', function() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function() { deferredPrompt = null; document.getElementById('installBanner').classList.remove('show'); });
+});
+document.getElementById('btnDismiss').addEventListener('click', function() { document.getElementById('installBanner').classList.remove('show'); });
+window.addEventListener('appinstalled', function() { document.getElementById('installBanner').classList.remove('show'); });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function() {});
 
 render();
 </script>
