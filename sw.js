@@ -1,9 +1,5 @@
-// ─── Зміни цю версію при кожному оновленні файлів ───
-// CACHE_NAME — унікальне ім'я кешу. Зміна версії
-// змусить service worker видалити старий кеш і завантажити нові файли.
-const CACHE_NAME = 'ptimer-v3';
-
-// ASSETS — список файлів які кешуються для офлайн-роботи
+// Змінюй версію при кожному оновленні — це тригер для оновлення кешу
+const CACHE_NAME = 'ptimer-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -13,9 +9,7 @@ const ASSETS = [
   './icon-512.png'
 ];
 
-// ─── Install ───
-// Спрацьовує коли браузер виявляє НОВИЙ service worker (змінився файл sw.js).
-// skipWaiting() — не чекає закриття вкладок, одразу активується.
+// Встановлення: кешуємо всі основні файли, skipWaiting активує новий SW одразу
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
@@ -23,10 +17,7 @@ self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// ─── Activate ───
-// Спрацьовує після install. Видаляє кеші старих версій.
-// clients.claim() — одразу бере контроль над відкритими вкладками
-// без перезавантаження.
+// Активація: видаляємо всі старі кеші і беремо контроль над клієнтами
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -35,28 +26,20 @@ self.addEventListener('activate', event => {
   );
 });
 
-// ─── Fetch ───
-// Стратегія: NETWORK FIRST — спочатку намагається завантажити з мережі.
-// Якщо мережа недоступна — бере з кешу (офлайн-режим).
+// Стратегія: NETWORK FIRST — спочатку мережа, якщо немає мережі — кеш
+// Це гарантує що при наявності інтернету завжди завантажується свіжа версія
 self.addEventListener('fetch', event => {
   event.respondWith(
-    fetch(event.request).then(response => {
-      // Успішна відповідь з мережі — оновлюємо кеш цим файлом
-      const clone = response.clone();
-      caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-      return response;
-    }).catch(() => {
-      // Мережа недоступна — повертаємо файл з кешу
-      return caches.match(event.request);
-    })
+    fetch(event.request)
+      .then(response => {
+        // Відповідь отримана з мережі — зберігаємо в кеш і повертаємо
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return response;
+      })
+      .catch(() => {
+        // Мережі немає — повертаємо з кешу (офлайн-режим)
+        return caches.match(event.request);
+      })
   );
-});
-
-// ─── Message listener ───
-// Дозволяє сторінці надіслати повідомлення 'SKIP_WAITING'
-// щоб примусово активувати новий service worker
-self.addEventListener('message', event => {
-  if (event.data === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
 });

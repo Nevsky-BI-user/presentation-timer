@@ -79,8 +79,15 @@ body {
   min-height: 100dvh;
   padding: 24px 16px;
   -webkit-font-smoothing: antialiased;
-  transition: background 0.3s ease, color 0.3s ease;
+  transition: background 0.5s ease, color 0.3s ease;
 }
+/* Стани попередження — фон body змінюється */
+/* Темна тема: за 3 хв — теплий темно-бурштиновий фон, за 1 хв — темно-червоний фон */
+body.warn-3[data-theme="dark"] { background: #1c1606; }
+body.warn-1[data-theme="dark"] { background: #1f0b0b; }
+/* Світла тема: за 3 хв — ледь помітний жовтуватий, за 1 хв — ледь помітний рожевий */
+body.warn-3[data-theme="light"] { background: #fdf6e3; }
+body.warn-1[data-theme="light"] { background: #fce8e8; }
 
 .container { max-width: 680px; margin: 0 auto; }
 
@@ -119,9 +126,13 @@ body {
 .timer-card {
   border-radius: 16px; padding: 32px 24px;
   margin-bottom: 20px; text-align: center;
-  transition: background 0.5s ease, border-color 0.5s ease;
+  transition: background 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
   border: 1px solid transparent;
 }
+.timer-card.warn-3 { box-shadow: 0 0 60px rgba(234,179,8,0.12); border-color: rgba(234,179,8,0.2) !important; }
+.timer-card.warn-1 { box-shadow: 0 0 60px rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.25) !important; }
+[data-theme="light"] .timer-card.warn-3 { box-shadow: 0 0 50px rgba(234,179,8,0.1); border-color: rgba(234,179,8,0.3) !important; }
+[data-theme="light"] .timer-card.warn-1 { box-shadow: 0 0 50px rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3) !important; }
 .timer-display {
   font-family: 'JetBrains Mono', monospace;
   font-size: min(72px, 14vw); font-weight: 700;
@@ -137,21 +148,12 @@ body {
   display: flex; justify-content: center; gap: 24px; margin-top: 12px;
   font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted);
 }
-.section-label { margin-top: 12px; font-size: 14px; color: var(--text-dim); }
-
-.block-warning {
-  display: none;
-  margin-top: 10px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  font-weight: 600;
-  animation: warningFlash 1.2s ease infinite;
+.section-label { margin-top: 12px; font-size: 14px; color: var(--text-dim); font-weight: 600; }
+.section-notes {
+  margin-top: 6px; font-size: 13px; color: var(--text-muted);
+  line-height: 1.5; max-height: 60px; overflow-y: auto;
+  white-space: pre-wrap; word-break: break-word;
 }
-.block-warning.show { display: inline-block; }
-.block-warning.warn-3 { background: rgba(234,179,8,0.15); color: #eab308; }
-.block-warning.warn-1 { background: rgba(239,68,68,0.15); color: #ef4444; }
 
 .progress-bar { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; width: 100%; margin-top: 20px; }
 .progress-segment {
@@ -293,9 +295,9 @@ body {
       <span>залишилось всього <span id="remaining">00:00</span></span>
       <span>всього <span id="totalTime">00:00</span></span>
     </div>
-    <div class="block-warning" id="blockWarning"></div>
     <div class="progress-bar" id="progressBar"></div>
     <div class="section-label" id="sectionLabel"></div>
+    <div class="section-notes" id="sectionNotes"></div>
     <div class="controls">
       <button class="btn btn-primary" id="btnStart">Старт</button>
       <button class="btn btn-reset" id="btnReset">Скинути</button>
@@ -382,11 +384,13 @@ function curIdx() {
 function prog() { var t = totalSec(); return t > 0 ? elapsed / t : 0; }
 // zone() — повертає 'green', 'yellow' або 'red' залежно від прогресу
 function zone() { var p = prog(); return p < 0.6 ? 'green' : p < 0.85 ? 'yellow' : 'red'; }
-// ZC — кольори зон: зелений, жовтий, червоний
-var ZC = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' };
+// ZC — кольори зон: зелений, жовтий, червоний — різні для темної та світлої теми
+var ZC_DARK = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' };
+var ZC_LIGHT = { green: '#16a34a', yellow: '#ca8a04', red: '#dc2626' };
+function ZC_get() { return theme === 'dark' ? ZC_DARK : ZC_LIGHT; }
 // ZBG — фонові кольори зон з прозорістю для темної та світлої теми
 var ZBG_DARK = { green: 'rgba(34,197,94,0.08)', yellow: 'rgba(234,179,8,0.08)', red: 'rgba(239,68,68,0.1)' };
-var ZBG_LIGHT = { green: 'rgba(34,197,94,0.06)', yellow: 'rgba(234,179,8,0.06)', red: 'rgba(239,68,68,0.06)' };
+var ZBG_LIGHT = { green: 'rgba(22,163,74,0.07)', yellow: 'rgba(202,138,4,0.07)', red: 'rgba(220,38,38,0.07)' };
 function getZBG() { return theme === 'dark' ? ZBG_DARK : ZBG_LIGHT; }
 
 // esc(s) — екранує HTML-символи щоб уникнути XSS
@@ -404,7 +408,7 @@ function blockRemaining() {
 
 // ─── Main render ───
 function render() {
-  var z = zone(), c = ZC[z], total = totalSec(), rem = Math.max(0, total - elapsed);
+  var z = zone(), c = ZC_get()[z], total = totalSec(), rem = Math.max(0, total - elapsed);
   var si = curIdx(), ends = secEnds();
   var blockRem = blockRemaining();
 
@@ -435,25 +439,40 @@ function render() {
   document.getElementById('totalTime').textContent = fmt(total);
   document.getElementById('sectionLabel').textContent = elapsed < total ? (sections[si] ? sections[si].title : '') : 'Час вичерпано';
 
-  // ─── Block warning (попередження за 3 хв та 1 хв до кінця блоку) ───
-  var warnEl = document.getElementById('blockWarning');
-  // Попередження показується тільки якщо таймер працює, час не вичерпано,
-  // і блок довший за 1 хвилину (інакше попередження немає сенсу)
-  if (running && elapsed < total && sections[si].minutes * 60 > 60) {
-    // blockRem — скільки секунд залишилось до кінця блоку
-    if (blockRem <= 60 && blockRem > 0) {
-      // менше 1 хвилини — червоне попередження
-      warnEl.className = 'block-warning show warn-1';
-      warnEl.textContent = '\u26A0 Менше 1 хв до кінця блоку!';
-    } else if (blockRem <= 180 && blockRem > 60) {
-      // менше 3 хвилин — жовте попередження
-      warnEl.className = 'block-warning show warn-3';
-      warnEl.textContent = '\u23F3 3 хв до кінця блоку';
-    } else {
-      warnEl.className = 'block-warning';
-    }
+  // ─── Нотатки поточного блоку на основному екрані ───
+  var notesEl = document.getElementById('sectionNotes');
+  if (elapsed < total && sections[si] && sections[si].notes) {
+    notesEl.textContent = sections[si].notes;
+    notesEl.style.display = '';
   } else {
-    warnEl.className = 'block-warning';
+    notesEl.textContent = '';
+    notesEl.style.display = 'none';
+  }
+
+  // ─── Block warning — фон body та timer-card змінюються за 3 хв та 1 хв до кінця блоку ───
+  // Замість окремих плашок-підказок — змінюється колір всього фону
+  var body = document.body;
+  var blockDuration = sections[si] ? sections[si].minutes * 60 : 0;
+  body.classList.remove('warn-3', 'warn-1');
+  card.classList.remove('warn-3', 'warn-1');
+  // warnColor — колір тексту таймера під час попередження (яскравіший ніж звичайний)
+  var warnColor = null;
+  if (running && elapsed < total && blockDuration > 60) {
+    if (blockRem <= 60 && blockRem > 0) {
+      body.classList.add('warn-1');
+      card.classList.add('warn-1');
+      // яскраво-червоний для темної теми, насичений для світлої
+      warnColor = theme === 'dark' ? '#ff5555' : '#dc2626';
+    } else if (blockRem <= 180 && blockRem > 60) {
+      body.classList.add('warn-3');
+      card.classList.add('warn-3');
+      // яскраво-жовтий для темної теми, насичений бурштин для світлої
+      warnColor = theme === 'dark' ? '#fbbf24' : '#d97706';
+    }
+  }
+  // Якщо є попередження — перезаписуємо колір таймера на warnColor
+  if (warnColor) {
+    document.getElementById('timerDisplay').style.color = warnColor;
   }
 
   // ─── Progress bar — сегментований прогрес-бар ───
@@ -524,7 +543,7 @@ function renderPlan(z, c, si) {
   con.querySelectorAll('.section-title-input').forEach(function(el) {
     el.addEventListener('input', function(e) {
       var s = sections.find(function(s) { return s.id === Number(e.target.dataset.secId); });
-      if (s) { s.title = e.target.value; save(); renderNotes(zone(), ZC[zone()], curIdx()); }
+      if (s) { s.title = e.target.value; save(); renderNotes(zone(), ZC_get()[zone()], curIdx()); }
     });
   });
   // ─── Event listeners для зміни тривалості блоку ───
@@ -714,31 +733,20 @@ document.getElementById('btnInstall').addEventListener('click', function() {
 });
 document.getElementById('btnDismiss').addEventListener('click', function() { document.getElementById('installBanner').classList.remove('show'); });
 window.addEventListener('appinstalled', function() { document.getElementById('installBanner').classList.remove('show'); });
-// ─── Service Worker з автооновленням ───
-// При кожному відкритті додатку перевіряє чи є нова версія sw.js.
-// Якщо є — автоматично перезавантажує сторінку з новими файлами.
+// ─── Service Worker з авто-оновленням ───
+// Реєструємо SW і слухаємо подію controllerchange
+// Коли новий SW активується — сторінка автоматично перезавантажується
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').then(function(reg) {
-    // Перевіряти оновлення кожні 60 секунд
+    // Перевіряємо оновлення кожні 60 секунд
     setInterval(function() { reg.update(); }, 60000);
-    // Коли знайдено новий service worker
-    reg.addEventListener('updatefound', function() {
-      var newWorker = reg.installing;
-      newWorker.addEventListener('statechange', function() {
-        // Коли новий SW активувався — перезавантажити сторінку
-        if (newWorker.state === 'activated') {
-          window.location.reload();
-        }
-      });
-    });
   }).catch(function() {});
-  // Якщо SW взяв контроль (clients.claim) — перезавантажити
+  // Коли новий SW взяв контроль — перезавантажуємо сторінку
   var refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
   });
 }
 
